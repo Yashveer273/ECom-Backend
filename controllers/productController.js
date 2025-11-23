@@ -157,78 +157,45 @@ if (!hasPrimeColor) {
 
 
 // --------------------------------------
-// ➤ GET ALL products with filtering, sorting, pagination
+// ➤ GET ALL products with filtering, publishStatus, sorting, pagination
 // --------------------------------------
+
+
 exports.getProducts = async (req, res) => {
-    try {
-        const { 
-            category, 
-            brand, 
-            minPrice, 
-            maxPrice,
-            search,
-            sort,
-            page = 1,
-            limit = 20,
-            // ✨ New parameter for filtering by publish status (Admin only)
-            publishStatus
-        } = req.query;
+  try {
+    let page = parseInt(req.query.page) || 1;
+    let limit = parseInt(req.query.limit) || 20;
+    let skip = (page - 1) * limit;
 
-        let filter = {};
-        const role = getUserRole(req);
+    // Only fetch PUBLISHED products
+    const products = await Product.find({ publishStatus: "Published" })
+      .select("name brand highlightHeading variations")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
-        // -------------------------------
-        // 1️⃣ PUBLISH STATUS / ACTIVE FILTER
-        
-        // Public users only see 'Published' and active products
-        if (role === 'public') {
-            filter.publishStatus = 'Published';
-            filter.isActive = true; 
-        } 
-        // Admin users can see all products by default, or filter by status
-        else if (role === 'admin') {
-            // Allows admin to explicitly filter by status (e.g., /?publishStatus=Draft)
-            if (publishStatus) {
-                filter.publishStatus = publishStatus;
-            }
-            // If no publishStatus is provided, the admin sees all statuses.
-            // Note: isActive filter is removed for admin to view inactive/archived products
-        }
+    const totalProducts = await Product.countDocuments({
+      publishStatus: "Published",
+    });
 
-        // -------------------------------
-        // 2️⃣ OTHER FILTERS (Apply to all roles)
+    res.json({
+      success: true,
+      currentPage: page,
+      totalPages: Math.ceil(totalProducts / limit),
+      totalProducts,
+      products
+    });
 
-        if (category) filter.category = category;
-        if (brand) filter.brand = brand;
-        if (minPrice || maxPrice)
-            filter["price.sellingPrice"] = {
-                ...(minPrice && { $gte: Number(minPrice) }),
-                ...(maxPrice && { $lte: Number(maxPrice) }),
-            };
-
-        // Full text search (MongoDB text index)
-        if (search) filter.$text = { $search: search };
-
-        // -------------------------------
-        // 3️⃣ SORTING & PAGINATION
-
-        let sortOption = {};
-        if (sort === "price_low") sortOption["price.sellingPrice"] = 1;
-        if (sort === "price_high") sortOption["price.sellingPrice"] = -1;
-        if (sort === "newest") sortOption["createdAt"] = -1;
-        if (sort === "rating") sortOption["avgRating"] = -1;
-
-        const products = await Product.find(filter)
-            .sort(sortOption)
-            .skip((page - 1) * limit)
-            .limit(Number(limit));
-
-        res.json({ success: true, products, total: products.length });
-    } catch (err) {
-        console.error("Get products error:", err);
-        res.status(500).json({ success: false, message: "Internal server error" });
-    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server Error",
+      error: error.message,
+    });
+  }
 };
+
 
 // --------------------------------------
 // ➤ GET single product by slug

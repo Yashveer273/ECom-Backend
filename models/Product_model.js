@@ -83,7 +83,9 @@ const VariationSchema = new mongoose.Schema(
  isActive: { type: Boolean, default: true },
     stock: { type: Number, default: 0 },
     inStock: { type: Boolean, default: true },
-      description: DetailSectionSchema,
+    productRatings: { type: Number, default: 0 },
+    reviews: [ReviewSchema],
+    description: DetailSectionSchema,
   },
   { _id: false }
 );
@@ -116,9 +118,8 @@ const ProductSchema = new mongoose.Schema(
     isFeatured: { type: Boolean, default: false },
     isPopular: { type: Boolean, default: false },
     isTrending: { type: Boolean, default: false },
-    avgRating: { type: Number, default: 0 },
-    totalRatings: { type: Number, default: 0 },
-    reviews: [ReviewSchema],
+  
+   
 
     warrantyYears: { type: Number, default: 0 },
     returnPolicyDays: { type: Number, default: 7 },
