@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verified Multi-Step Auth</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for a cleaner UI */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fb;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding-top: 4rem;
+        }
+        .card {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        input[type="text"], input[type="email"] {
+            transition: all 0.2s;
+        }
+        input[type="text"]:focus, input[type="email"]:focus {
+            border-color: #3b82f6; /* Blue-500 */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+<div class="card bg-white p-8 rounded-xl w-full max-w-md">
+
+    <h2 id="formTitle" class="text-3xl font-bold text-center text-gray-800 mb-6">Register</h2>
+
+    <!-- Response/Status Box -->
+    <div id="responseBox" class="text-center p-3 mb-4 rounded-lg text-sm bg-blue-100 text-blue-800 hidden"></div>
+
+    <!-- MAIN FORM CONTAINER -->
+    <div id="registrationForm">
+
+        <!-- STEP 1: PHONE VERIFICATION -->
+        <div id="step1" class="space-y-4">
+            <h3 class="text-xl font-semibold text-gray-700">Step 1: Verify Phone Number</h3>
+            
+            <input type="text" id="regPhone" placeholder="Enter Phone Number" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+            
+            <div id="phoneOtpContainer" class="flex space-x-2 hidden">
+                <input type="text" id="phoneOtpInput" placeholder="Enter OTP" class="w-2/3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                <button onclick="verifyOTPHandler('phone')" class="w-1/3 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition duration-150">Verify</button>
+            </div>
+            
+            <button id="sendPhoneOtpBtn" onclick="sendOTPHandler('phone')" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-150">Send Phone OTP</button>
+            <p class="text-xs text-gray-500 mt-2">Example: 1234567890</p>
+        </div>
+
+        <!-- STEP 2: EMAIL VERIFICATION (Initially Hidden) -->
+        <div id="step2" class="space-y-4 hidden mt-8 pt-6 border-t border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-700">Step 2: Verify Email ID</h3>
+
+            <p class="text-sm text-gray-600 font-medium">Verified Phone: <span id="displayPhone" class="font-bold text-green-700"></span></p>
+
+            <input type="email" id="regEmail" placeholder="Enter Email ID" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+            
+            <div id="emailOtpContainer" class="flex space-x-2 hidden">
+                <input type="text" id="emailOtpInput" placeholder="Enter OTP" class="w-2/3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+                <button onclick="verifyOTPHandler('email')" class="w-1/3 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition duration-150">Verify</button>
+            </div>
+            
+            <button id="sendEmailOtpBtn" onclick="sendOTPHandler('email')" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-150">Send Email OTP</button>
+             <p class="text-xs text-gray-500 mt-2">Example: user@example.com</p>
+        </div>
+
+        <!-- STEP 3: USERNAME & FINAL REGISTER (Initially Hidden) -->
+        <div id="step3" class="space-y-4 hidden mt-8 pt-6 border-t border-gray-200">
+            <h3 class="text-xl font-semibold text-gray-700">Step 3: Choose Username</h3>
+             <p class="text-sm text-gray-600 font-medium">Verified Email: <span id="displayEmail" class="font-bold text-green-700"></span></p>
+
+            <input type="text" id="username" placeholder="Choose a Username" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+            
+            <button id="registerBtn" onclick="registerUser()" class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition duration-150 font-bold">Complete Registration</button>
+        </div>
+
+    </div>
+
+    <!-- Login Mode (Placeholder for Login form) -->
+    <div id="loginForm" class="space-y-4 hidden">
+        <h3 class="text-xl font-semibold text-gray-700">Login</h3>
+        <input type="text" id="identifier" placeholder="Phone or Email" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+        
+        <div id="loginOtpContainer" class="flex space-x-2 hidden">
+            <input type="text" id="loginOtpInput" placeholder="Enter OTP" class="w-2/3 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none">
+            <button onclick="loginVerifyOTP()" class="w-1/3 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition duration-150">Verify</button>
+        </div>
+
+        <button id="sendLoginOtpBtn" onclick="sendOTPHandler('login')" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition duration-150">Send Login OTP</button>
+        <button id="loginBtn" onclick="loginUser()" class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition duration-150 font-bold hidden">Login</button>
+    </div>
+
+    <button id="switchModeBtn" onclick="toggleMode()" class="w-full mt-6 text-sm text-gray-600 hover:text-blue-600 transition duration-150">Already have an account? Log In</button>
+
+</div>
+
+<script>
+    // --- GLOBAL STATE ---
+    let CURRENT_MODE = "register"; 
+    let CURRENT_REG_STEP = 1; // 1: Phone, 2: Email, 3: Register Details
+    
+    let SERVER_TOKEN = null; 
+    let GENERATED_OTP = null; // Dev OTP for frontend verification
+
+    let VERIFIED_PHONE = null;
+    let VERIFIED_EMAIL = null;
+    
+    const API_BASE = "http://localhost:5000/auth";
+
+    // Utility function for error handling without alert()
+    function showMessage(message, type = 'info') {
+        const box = document.getElementById("responseBox");
+        box.innerText = message;
+        box.classList.remove('hidden', 'bg-blue-100', 'text-blue-800', 'bg-red-100', 'text-red-800', 'bg-green-100', 'text-green-800');
+
+        if (type === 'success') {
+            box.classList.add('bg-green-100', 'text-green-800');
+        } else if (type === 'error') {
+            box.classList.add('bg-red-100', 'text-red-800');
+        } else {
+            box.classList.add('bg-blue-100', 'text-blue-800');
+        }
+        // Ensure the box is visible when a message is set
+        box.classList.remove('hidden');
+    }
+
+    // --- UI MANAGEMENT ---
+
+    function updateUI() {
+        const isRegister = CURRENT_MODE === "register";
+
+        // Toggle main forms
+        document.getElementById("registrationForm").classList.toggle("hidden", !isRegister);
+        document.getElementById("loginForm").classList.toggle("hidden", isRegister);
+        document.getElementById("formTitle").innerText = isRegister ? "Register" : "Login";
+        document.getElementById("switchModeBtn").innerText = isRegister ? 
+            "Already have an account? Log In" : "Need an account? Register";
+        
+        if (isRegister) {
+            // Manage visibility for Registration Steps
+            document.getElementById("step1").classList.toggle("hidden", CURRENT_REG_STEP > 1);
+            document.getElementById("step2").classList.toggle("hidden", CURRENT_REG_STEP < 2);
+            document.getElementById("step3").classList.toggle("hidden", CURRENT_REG_STEP < 3);
+
+            // Display verified data
+            document.getElementById("displayPhone").innerText = VERIFIED_PHONE || 'N/A';
+            document.getElementById("displayEmail").innerText = VERIFIED_EMAIL || 'N/A';
+        } else {
+            // Reset OTP containers in Login mode
+            document.getElementById("loginOtpContainer").classList.add("hidden");
+            document.getElementById("loginBtn").classList.add("hidden");
+            // Also ensure the identifier input is enabled when switching to login mode
+            document.getElementById("identifier").disabled = false;
+            document.getElementById("sendLoginOtpBtn").disabled = false;
+        }
+    }
+
+    function toggleMode() {
+        CURRENT_MODE = (CURRENT_MODE === "register") ? "login" : "register";
+        // Reset state when switching mode for clarity
+        CURRENT_REG_STEP = 1; 
+        VERIFIED_PHONE = null;
+        VERIFIED_EMAIL = null;
+        SERVER_TOKEN = null;
+        GENERATED_OTP = null;
+        showMessage(''); // Clear response box
+        updateUI();
+    }
+
+    // --- STEP 1 & 2: OTP LOGIC ---
+
+    async function sendOTPHandler(type) {
+        let value;
+        let inputId;
+        let sendBtnId;
+        
+        // Determine the mode based on the current global state
+        const mode = CURRENT_MODE; 
+
+        if (mode === 'register') {
+            if (type === 'phone') {
+                inputId = "regPhone";
+                sendBtnId = "sendPhoneOtpBtn";
+            } else if (type === 'email') {
+                inputId = "regEmail";
+                sendBtnId = "sendEmailOtpBtn";
+            }
+            value = document.getElementById(inputId)?.value;
+        } else if (mode === 'login') {
+            inputId = "identifier";
+            sendBtnId = "sendLoginOtpBtn";
+            value = document.getElementById(inputId)?.value;
+            type = value && value.includes("@") ? "email" : "phone"; // Determine type dynamically for login
+        }
+        
+        if (!value) return showMessage("Value required!", 'error');
+        
+        const otpContainerId = (mode === 'login') ? 'loginOtpContainer' : 
+                               (type === 'phone' ? 'phoneOtpContainer' : 'emailOtpContainer');
+
+        try {
+            // MODIFIED: Include 'mode' in the body data to satisfy the new server route
+            const bodyData = { type, value, mode };
+
+            const res = await fetch(`${API_BASE}/send-otp`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json"},
+                body: JSON.stringify(bodyData)
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !data.success) {
+                // The server now handles user existence checks and sends a proper message
+                throw new Error(data.message || "Server error during OTP send.");
+            }
+
+            SERVER_TOKEN = data.token;
+            GENERATED_OTP = data.otp;  
+
+            // Show the OTP container
+            document.getElementById(otpContainerId).classList.remove("hidden");
+            
+            // Disable input and send button for flow control
+            document.getElementById(inputId).disabled = true;
+            document.getElementById(sendBtnId).disabled = true;
+
+            showMessage(
+                `OTP sent ✅ (Dev OTP: ${GENERATED_OTP})`, 
+                'success'
+            );
+
+        } catch (err) {
+            console.error(err);
+            showMessage("Error sending OTP: " + err.message, 'error');
+        }
+    }
+
+    function verifyOTPHandler(type) {
+        const otpInputId = type === 'phone' ? 'phoneOtpInput' : 'emailOtpInput';
+        const valueInputId = type === 'phone' ? 'regPhone' : 'regEmail';
+
+        const enteredOTP = document.getElementById(otpInputId).value;
+        const value = document.getElementById(valueInputId).value;
+
+        if (enteredOTP !== GENERATED_OTP.toString()) {
+            return showMessage("Invalid OTP!", 'error');
+        }
+
+        showMessage("✅ OTP Verified", 'success');
+
+        if (type === 'phone' && CURRENT_REG_STEP === 1) {
+            VERIFIED_PHONE = value;
+            CURRENT_REG_STEP = 2; // Move to email verification
+            // Inputs are already disabled in sendOTPHandler, but we ensure the next steps' fields are reset:
+            document.getElementById('emailOtpContainer').classList.add('hidden');
+            document.getElementById('regEmail').disabled = false;
+            document.getElementById('sendEmailOtpBtn').disabled = false;
+
+            updateUI();
+        } 
+        
+        if (type === 'email' && CURRENT_REG_STEP === 2) {
+            VERIFIED_EMAIL = value;
+            CURRENT_REG_STEP = 3; // Move to final registration
+            updateUI();
+        }
+    }
+
+    // --- STEP 3: REGISTRATION & LOGIN ---
+
+    async function registerUser() {
+        const username = document.getElementById("username").value;
+
+        if (!username || !VERIFIED_PHONE || !VERIFIED_EMAIL) {
+            return showMessage("Missing username or previous verification steps!", 'error');
+        }
+
+        try {
+            const res = await fetch(`${API_BASE}/register`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                // Use the verified phone and email from state
+                body: JSON.stringify({ 
+                    username, 
+                    phone: VERIFIED_PHONE, 
+                    email: VERIFIED_EMAIL 
+                })
+            });
+
+            const data = await res.json();
+
+            if (!data.success) {
+                return showMessage("Registration failed: " + data.message, 'error');
+            }
+
+            showMessage("🎉 Registration Successful! Please use the 'Log In' tab to proceed.", 'success');
+            
+            // Reset for next use
+            CURRENT_REG_STEP = 1;
+            VERIFIED_PHONE = null;
+            VERIFIED_EMAIL = null;
+            document.getElementById("username").value = '';
+            toggleMode(); // Switch to login view after successful registration
+            
+        } catch (err) {
+            console.error("Registration Error:", err);
+            showMessage("Registration Error! Check server connection.", 'error');
+        }
+    }
+    
+    function loginVerifyOTP() {
+        const enteredOTP = document.getElementById("loginOtpInput").value;
+        if (enteredOTP !== GENERATED_OTP.toString()) {
+            return showMessage("Invalid OTP!", 'error');
+        }
+        showMessage("OTP Verified. Click Login to continue.", 'success');
+        document.getElementById("loginBtn").classList.remove("hidden");
+    }
+
+    async function loginUser() {
+        const value = document.getElementById("identifier").value;
+
+        // In login mode, we only enable the Login button after OTP verification, 
+        // which guarantees SERVER_TOKEN is set.
+        if (!SERVER_TOKEN) {
+            return showMessage("Please send and verify OTP first.", 'error');
+        }
+
+        try {
+            const bodyData = {
+                token: SERVER_TOKEN,
+                value
+            };
+
+            const res = await fetch(`${API_BASE}/login`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json"},
+                body: JSON.stringify(bodyData)
+            });
+
+            const data = await res.json();
+
+            if (!data.success) {
+                return showMessage("Login failed: " + data.message, 'error');
+            }
+
+            showMessage("✅ Login Successful!", 'success');
+            // In a real app, you would save data.authToken here (e.g., in a secure cookie)
+
+        } catch (err) {
+            console.error("Login Error:", err);
+            showMessage("Login Error! Check server connection.", 'error');
+        }
+    }
+
+    // Initialize UI on load
+    document.addEventListener('DOMContentLoaded', updateUI);
+</script>
+</body>
+</html>
