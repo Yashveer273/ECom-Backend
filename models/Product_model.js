@@ -71,6 +71,7 @@ const DetailSectionSchema = new mongoose.Schema(
 // --------------------------------------
 const VariationSchema = new mongoose.Schema(
   {
+    PV_id: { type: mongoose.Schema.Types.ObjectId,required: true },
     color: String,
     size: String,
     stock: { type: Number, default: 0 },
